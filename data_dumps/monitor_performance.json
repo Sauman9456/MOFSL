@@ -1,0 +1,50 @@
+{
+  "AI & ML": {
+    "sharpe_ratio": 5.596665498043826,
+    "sortino_ratio": 8.127918731354123,
+    "max_drawdown": -0.03548064822131682,
+    "tracking_error": 0.0
+  },
+  "Clean Energy": {
+    "sharpe_ratio": 5.241581582104746,
+    "sortino_ratio": 7.647997562761848,
+    "max_drawdown": -0.045005625890534175,
+    "tracking_error": 0.0
+  },
+  "Cybersecurity": {
+    "sharpe_ratio": 4.566287994874609,
+    "sortino_ratio": 6.716540305951744,
+    "max_drawdown": -0.049706118847450825,
+    "tracking_error": 0.0
+  },
+  "Biotech": {
+    "sharpe_ratio": 3.470463710767029,
+    "sortino_ratio": 5.9291824908186745,
+    "max_drawdown": -0.04979652032940737,
+    "tracking_error": 0.0
+  },
+  "Cloud Computing": {
+    "sharpe_ratio": 4.684677310232842,
+    "sortino_ratio": 7.282169946193243,
+    "max_drawdown": -0.06239233598853224,
+    "tracking_error": 0.0
+  },
+  "Metaverse": {
+    "sharpe_ratio": 4.549536389017373,
+    "sortino_ratio": 7.220088843857849,
+    "max_drawdown": -0.04048981035977769,
+    "tracking_error": 0.0
+  },
+  "Robotics": {
+    "sharpe_ratio": 4.853405132122921,
+    "sortino_ratio": 7.897913862708895,
+    "max_drawdown": -0.03629394956983451,
+    "tracking_error": 0.0
+  },
+  "Fintech": {
+    "sharpe_ratio": 4.462281916231493,
+    "sortino_ratio": 7.824562169285678,
+    "max_drawdown": -0.04815790551096739,
+    "tracking_error": 0.0
+  }
+}

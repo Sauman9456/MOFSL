@@ -1,0 +1,1 @@
+themes = ['AI & ML', 'Clean Energy', 'Cybersecurity', 'Biotech', 'Cloud Computing', 'Metaverse', 'Robotics', 'Fintech']
