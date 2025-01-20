@@ -14,6 +14,8 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Append 'None' so the model can classify companies outside the known themes
+
 themes_list = themes_list + ["None"]
 themes_literal = Literal[tuple(themes_list)]
 
@@ -31,21 +33,30 @@ class MultiClassPrediction(BaseModel):
 
 def identify_themes(instructor_client, company_name: str, context: str) -> List[str]:
     """
-    Use OpenAI to identify themes from company news context.
-    Optionally applies advanced techniques like embeddings, KMeans clustering, sentiment.
+    Use an AI model (OpenAI + Instructor library) to identify investment themes
+    relevant to a given company, based on recent news context.
+
+    Steps:
+      1) Builds a GPT-style prompt with the context and a list of possible themes.
+      2) Sends the prompt to the LLM for classification.
+      3) Returns the list of predicted themes.
 
     Parameters
     ----------
+    instructor_client : Any
+        An instance of the Instructor or OpenAI client used to generate GPT-based responses.
+    company_name : str
+        Name of the company being analyzed.
     context : str
-        Combined text from news articles.
-    use_advanced : bool
-        Whether to use advanced embeddings + clustering approach.
+        Concatenated news articles or other textual context about the company.
 
     Returns
     -------
     List[str]
-        A List containing identified theme information.
+        A list of theme labels that best match the company's profile
+        according to the AI model.
     """
+
     if not context.strip():
         return {}
 

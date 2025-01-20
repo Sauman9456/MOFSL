@@ -24,8 +24,26 @@ logger = logging.getLogger(__name__)
 
 def _process_single_company(row: Dict[str, Any]) -> tuple:
     """
-    Helper function for parallel processing.
-    Takes (row, use_advanced) as input, returns (symbol, context, themes).
+    Helper function for parallel processing of a single S&P 500 company.
+
+    This function:
+      1) Extracts the company's symbol and name.
+      2) Fetches relevant news articles for that company.
+      3) Identifies the key investment themes for the company using AI techniques.
+
+    Parameters
+    ----------
+    row : Dict[str, Any]
+        A dictionary containing row data from the S&P 500 DataFrame,
+        including the keys 'Symbol' (ticker) and 'Security' (company name).
+
+    Returns
+    -------
+    tuple
+        A tuple of the form (symbol, context, themes), where
+         - symbol is the company's ticker symbol (str).
+         - context is the concatenated news articles text (str).
+         - themes is a list of identified themes (List[str]).
     """
 
     symbol = row["Symbol"]

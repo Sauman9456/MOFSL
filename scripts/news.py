@@ -12,9 +12,28 @@ logger = logging.getLogger(__name__)
 
 def get_company_news(google_news, cache, company_name: str) -> str:
     """
-    Fetch recent news articles for a company using NewsAPI.
-    Returns combined string of titles for analysis.
-    Caches the result if Redis is available to avoid repeated calls.
+    Fetch recent news articles for a given company and concatenates the titles into a single string.
+
+    Steps:
+      1) Checks if cached news data exists in Redis.
+      2) If cached, returns directly from the cache.
+      3) If not, uses GNews to fetch news articles related to the company.
+      4) Parses article titles and concatenates them into a context string.
+      5) Caches the result in Redis for future use.
+
+    Parameters
+    ----------
+    google_news : gnews.GNews
+        An instance of the GNews API client to fetch articles.
+    cache : redis.Redis
+        Redis client instance for caching responses.
+    company_name : str
+        The name of the company being searched.
+
+    Returns
+    -------
+    str
+        A single string containing the concatenated news titles.
     """
 
     if cache:

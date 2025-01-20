@@ -32,22 +32,22 @@ logger = logging.getLogger(__name__)
 class ThematicBasketCreator:
     """
     A class that orchestrates the thematic investing pipeline:
-      1) Data ingestion for S&P 500
-      2) Advanced AI theme extraction (embeddings, clustering, sentiment)
-      3) Basket creation
-      4) Portfolio optimization and risk analysis (VaR, CVaR)
-      5) Scalability with multiprocessing and caching
-      6) Cloud deployment stubs (AWS)
-      7) Data validation / quality checks
-      8) Performance monitoring (metrics)
+
+    1) Data ingestion for S&P 500.
+    2) Advanced AI theme extraction (embeddings, clustering, sentiment).
+    3) Basket creation.
+    4) Portfolio optimization and risk analysis (VaR, CVaR).
+    5) Scalability with multiprocessing and caching.
+    6) Cloud deployment stubs (AWS).
+    7) Data validation / quality checks.
+    8) Performance monitoring (metrics).
 
     Attributes
     ----------
-
     data_dir : str
-        Directory path for data dumps
-    themes : List
-        List of available themes
+        Directory path for data dumps.
+    themes : List[str]
+        List of available themes.
 
     Usage
     -----
@@ -61,15 +61,17 @@ class ThematicBasketCreator:
 
     def __init__(self):
         """
-        Initialize the ThematicBasketCreator.
-        Sets up themes, and data directory.
+        Initialize the ThematicBasketCreator instance.
+
+        - Sets up available themes from 'theme_list'.
+        - Creates or ensures the existence of a 'data_dumps' directory.
         """
         self.themes = theme_list
 
         # Create data dumps directory
         self.data_dir = "data_dumps"
         os.makedirs(self.data_dir, exist_ok=True)
-        os.makedirs(f"{self.data_dir}\charts", exist_ok=True)
+        os.makedirs(f"{self.data_dir}{os.sep}charts", exist_ok=True)
 
     # ------------------------------------------------------------------------
     # 1. Data Ingestion
@@ -77,10 +79,23 @@ class ThematicBasketCreator:
     def fetch_sp500_data(self) -> pd.DataFrame:
         """
         Fetch S&P 500 companies from Wikipedia.
-        Returns a DataFrame with 'Symbol' and 'Security'.
 
-        Data Validation: checks if the DataFrame is not empty.
+        This method downloads the current list of S&P 500 constituents
+        from Wikipedia, returning them as a pandas DataFrame with 'Symbol'
+        and 'Security' columns, among others.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame of S&P 500 companies with multiple columns including
+            'Symbol' and 'Security'.
+
+        Raises
+        ------
+        ValueError
+            If the fetched DataFrame is empty or the URL could not be accessed.
         """
+
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
         try:
             df = pd.read_html(url)[0]
@@ -98,9 +113,23 @@ class ThematicBasketCreator:
     # ------------------------------------------------------------------------
     def validate_data(self, df: pd.DataFrame) -> None:
         """
-        Performs basic data quality checks on a DataFrame.
-        Logs any missing values.
+        Performs basic data quality checks on the provided DataFrame.
+
+        Checks if:
+          1) The DataFrame is not None or empty.
+          2) Logs any columns with missing values.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The DataFrame to validate.
+
+        Raises
+        ------
+        ValueError
+            If the DataFrame is None or empty.
         """
+
         if df is None or df.empty:
             raise ValueError("DataFrame is None or empty. Validation failed.")
 
@@ -110,7 +139,7 @@ class ThematicBasketCreator:
             logger.info(f"Missing values found:\n{missing}")
 
     # ------------------------------------------------------------------------
-    # 2. Create Thematic Baskets
+    # 3. Create Thematic Baskets
     # ------------------------------------------------------------------------
     def create_thematic_baskets(
         self,
@@ -119,11 +148,32 @@ class ThematicBasketCreator:
         reload_classes: bool = False,
     ) -> Dict[str, List[str]]:
         """
-        High-level method to create thematic baskets by analyzing news,
-        extracting themes, and categorizing each stock.
-        Uses parallel processing to speed up for large datasets.
+        Categorize each S&P 500 company into one or more thematic baskets.
 
-        Returns a dictionary of { theme_name : [list_of_symbols] }.
+        Steps:
+          1) Validates the S&P 500 DataFrame.
+          2) If 'reload_classes' is False, attempts to load existing classification
+             results from a file (analysis_progress.pkl).
+          3) If the classification file does not exist or 'reload_classes' is True,
+             it runs the AI classification for each company in parallel.
+          4) Stores classification progress in 'analysis_progress.pkl' to handle
+             crash recovery.
+          5) Aggregates the results into a dictionary: {theme: [list_of_symbols]}.
+
+        Parameters
+        ----------
+        sp500_df : pd.DataFrame
+            DataFrame of S&P 500 constituents.
+        use_advanced : bool, optional
+            Placeholder flag to indicate using advanced AI approaches (default=False).
+        reload_classes : bool, optional
+            If True, re-run classification from scratch. Otherwise, attempt
+            to load from 'analysis_progress.pkl' (default=False).
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A mapping of theme names to lists of tickers (e.g., {"AI & ML": ["AAPL", ...]}).
         """
 
         # Example baskets
@@ -154,7 +204,7 @@ class ThematicBasketCreator:
 
         # Use pool.map for parallel processing
         # This function calls a helper that returns (symbol, context, themes)
-        with multiprocessing.Pool(processes=1) as pool:
+        with multiprocessing.Pool(processes=4) as pool:
             results = pool.map(_process_single_company, unprocessed)
 
         # Combine results with existing progress
@@ -175,7 +225,19 @@ class ThematicBasketCreator:
         self, symbol: str, themes: List[str], baskets: Dict[str, List[str]]
     ):
         """
-        Simple logic to map a company's themes to the relevant basket(s).
+        Adds a company's ticker symbol to the corresponding thematic baskets.
+
+        If a theme is found in the company's identified themes list,
+        it appends the symbol to that theme's list within the baskets dictionary.
+
+        Parameters
+        ----------
+        symbol : str
+            Ticker symbol for the company.
+        themes : List[str]
+            A list of themes identified for this company by the AI classifier.
+        baskets : Dict[str, List[str]]
+            A dictionary mapping theme names to a list of ticker symbols.
         """
         if not themes:
             return
@@ -187,14 +249,35 @@ class ThematicBasketCreator:
                 baskets[theme].append(symbol)
 
     # ------------------------------------------------------------------------
-    # 3. Portfolio Optimization & Risk Management
+    # 4. Portfolio Optimization & Risk Management
     # ------------------------------------------------------------------------
     def optimize_basket_portfolio(self, basket: List[str]) -> Dict[str, Any]:
         """
-        Optimizes the portfolio weights for a thematic basket to maximize Sharpe Ratio.
-        Also calculates advanced risk metrics like VaR and CVaR.
+        Optimizes the portfolio weights for a thematic basket to maximize the Sharpe Ratio.
 
-        Returns a dictionary with weights, sharpe_ratio, risk metrics, etc.
+        Steps:
+          1) Downloads 1 year of historical closing prices for each symbol in the basket.
+          2) Cleans the data (removes tickers with excessive missing data).
+          3) Calculates daily returns, annualized returns, and the covariance matrix.
+          4) Uses a 'minimize' function from scipy to maximize the Sharpe Ratio
+             (equivalent to minimizing the negative Sharpe).
+          5) Calculates additional risk metrics like VaR and CVaR.
+
+        Parameters
+        ----------
+        basket : List[str]
+            A list of ticker symbols for a particular theme.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary containing the optimized portfolio's:
+              - "weights": Dict[str, float]
+              - "sharpe_ratio": float
+              - "VaR_95": float
+              - "CVaR_95": float
+
+            If optimization fails or the basket is empty, returns an empty dict.
         """
         if len(basket) < 1:
             return {}
@@ -274,9 +357,24 @@ class ThematicBasketCreator:
         self, returns: pd.Series, confidence_level: float = 0.95
     ) -> tuple:
         """
-        Calculate Value at Risk (VaR) and Conditional VaR (CVaR) using historical simulation.
-        returns: daily returns of portfolio
-        confidence_level: 0.95 for 95% VaR
+        Calculate the Value at Risk (VaR) and Conditional VaR (CVaR) using
+        a historical simulation approach.
+
+        VaR at 95% confidence level means the loss is not expected to exceed
+        this value more than 5% of the time. CVaR is the average loss given
+        that the loss is worse than VaR.
+
+        Parameters
+        ----------
+        returns : pd.Series
+            Daily returns of the portfolio.
+        confidence_level : float, optional
+            The probability level at which VaR is computed (default=0.95).
+
+        Returns
+        -------
+        tuple
+            (VaR, CVaR) in decimal form (e.g., -0.02 for -2%).
         """
         sorted_returns = np.sort(returns.values)
         index = int((1 - confidence_level) * len(sorted_returns))
@@ -286,8 +384,18 @@ class ThematicBasketCreator:
 
     def _download_history_for_basket(self, basket: List[str]) -> pd.DataFrame:
         """
-        Helper to download 1 year of historical price data from yfinance for all symbols in basket.
-        Returns a DataFrame of closing prices.
+        Downloads 1 year of daily historical closing prices from Yahoo Finance
+        for all symbols in the given basket.
+
+        Parameters
+        ----------
+        basket : List[str]
+            A list of ticker symbols.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame of daily closing prices with each column being a ticker.
         """
         stock_data = pd.DataFrame()
         for symbol in basket:
@@ -303,11 +411,20 @@ class ThematicBasketCreator:
         return stock_data
 
     # ------------------------------------------------------------------------
-    # 4. Scalability: Cloud Deployment Stubs
+    # 5. Scalability: Cloud Deployment Stubs
     # ------------------------------------------------------------------------
     def setup_cloud_infrastructure(self):
         """
-        Placeholder method for AWS integration, e.g., setting up S3, SQS, Lambda clients.
+        Placeholder method for AWS integration.
+
+        Example usage:
+          - Creates AWS clients for S3, SQS, Lambda if 'boto3' is installed.
+          - If 'boto3' is missing or there's a setup error, logs a message.
+
+        Raises
+        ------
+        ImportError
+            If 'boto3' is not installed.
         """
         try:
             import boto3
@@ -322,7 +439,7 @@ class ThematicBasketCreator:
             logger.error(f"Failed to set up cloud infrastructure: {e}")
 
     # ------------------------------------------------------------------------
-    # 5. Visualization: Efficient Frontier
+    # 6. Visualization: (A) Efficient Frontier
     # ------------------------------------------------------------------------
 
     def visualize_efficient_frontier(
@@ -330,9 +447,29 @@ class ThematicBasketCreator:
     ) -> None:
         """
         Generate and plot random portfolios for the given basket to visualize
-        the efficient frontier using Plotly. Highlights the max Sharpe ratio portfolio.
+        the Efficient Frontier using Plotly, highlighting the max Sharpe ratio.
 
-        Now includes ticker-weight info in the hover tooltip.
+        Steps:
+          1) Fetches historical data for the basket.
+          2) Computes daily returns and covariance matrix.
+          3) Creates random allocations for 'n_portfolios' portfolios.
+          4) Calculates Return, Volatility, and Sharpe Ratio for each.
+          5) Plots these in a scatter chart with color=Sharpe Ratio.
+          6) Marks the best (max Sharpe) portfolio in red.
+
+        Parameters
+        ----------
+        theme : str
+            Name of the theme for labeling charts.
+        basket : List[str]
+            List of tickers in the theme's basket.
+        n_portfolios : int, optional
+            Number of random portfolios to generate (default=2000).
+
+        Returns
+        -------
+        None
+            Saves an interactive HTML file in the 'data_dumps/charts' directory.
         """
         stock_data = self._download_history_for_basket(basket)
         if stock_data.shape[1] < 2:
@@ -453,8 +590,18 @@ class ThematicBasketCreator:
     def visualize_theme_comparison(self, optimized_portfolios: Dict[str, Any]) -> None:
         """
         Creates a bar chart comparing Sharpe, VaR, and CVaR across all themes
-        that have valid optimized data. This helps you see which themes have
-        higher risk-adjusted returns or higher risk metrics at a glance.
+        that have valid optimization results.
+
+        Parameters
+        ----------
+        optimized_portfolios : Dict[str, Any]
+            Dictionary containing the optimization results for each theme,
+            keyed by theme name, and including "sharpe_ratio", "VaR_95", and "CVaR_95".
+
+        Returns
+        -------
+        None
+            Saves an interactive HTML file in 'data_dumps/charts'.
         """
         themes_list = []
         sharpe_values = []
@@ -517,13 +664,25 @@ class ThematicBasketCreator:
     ) -> None:
         """
         Plots a single interactive line chart showing the cumulative returns
-        over the last year for each *optimized* thematic basket.
+        for each *optimized* thematic basket over the last year.
 
         Steps:
-          1) Download data for the basket's tickers.
-          2) Multiply daily returns by optimized weights to get portfolio returns.
-          3) Compute cumulative returns.
-          4) Plot them together for easy performance comparison.
+          1) For each theme, retrieves the basket's tickers.
+          2) Builds the portfolio daily returns using the optimized weights.
+          3) Computes cumulative returns and plots them on a single chart.
+
+        Parameters
+        ----------
+        baskets : Dict[str, List[str]]
+            Dictionary mapping theme names to a list of tickers.
+        optimized_portfolios : Dict[str, Any]
+            Dictionary containing the optimized weights for each theme,
+            keyed by theme name.
+
+        Returns
+        -------
+        None
+            Saves an interactive HTML file in 'data_dumps/charts'.
         """
         fig = go.Figure()
 
@@ -586,12 +745,28 @@ class ThematicBasketCreator:
         logger.info(f"Saved cumulative returns comparison to: {output_html}")
 
     # ------------------------------------------------------------------------
-    # 6. Performance Monitoring
+    # 7. Performance Monitoring
     # ------------------------------------------------------------------------
     def monitor_performance(self, portfolio_returns: pd.Series):
         """
-        Calculate performance metrics for the portfolio, e.g. Sharpe, Sortino, Max Drawdown, etc.
+        Calculate key performance metrics for a given series of daily portfolio returns:
+         - Sharpe Ratio
+         - Sortino Ratio
+         - Maximum Drawdown
+         - Tracking Error (placeholder if no benchmark provided)
+
+        Parameters
+        ----------
+        portfolio_returns : pd.Series
+            Daily returns of the portfolio.
+
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary containing 'sharpe_ratio', 'sortino_ratio',
+            'max_drawdown', and 'tracking_error'.
         """
+
         metrics = {
             "sharpe_ratio": self._calculate_sharpe_ratio(portfolio_returns),
             "sortino_ratio": self._calculate_sortino_ratio(portfolio_returns),
@@ -604,6 +779,22 @@ class ThematicBasketCreator:
         return metrics
 
     def _calculate_sharpe_ratio(self, returns: pd.Series, rf: float = 0.02) -> float:
+        """
+        Computes the Sharpe Ratio for daily returns, annualized.
+
+        Parameters
+        ----------
+        returns : pd.Series
+            Daily returns of the portfolio or stock.
+        rf : float, optional
+            The risk-free rate (default=0.02 for 2% annual).
+
+        Returns
+        -------
+        float
+            The annualized Sharpe Ratio. A higher value indicates better
+            risk-adjusted performance.
+        """
         mean_ret = returns.mean() * 252
         vol = returns.std() * np.sqrt(252)
         if vol == 0:
@@ -611,6 +802,21 @@ class ThematicBasketCreator:
         return (mean_ret - rf) / vol
 
     def _calculate_sortino_ratio(self, returns: pd.Series, rf: float = 0.02) -> float:
+        """
+        Computes the Sortino Ratio, focusing only on downside volatility.
+
+        Parameters
+        ----------
+        returns : pd.Series
+            Daily returns of the portfolio or stock.
+        rf : float, optional
+            The risk-free rate (default=0.02).
+
+        Returns
+        -------
+        float
+            The annualized Sortino Ratio, which isolates downside volatility.
+        """
         mean_ret = returns.mean() * 252
         negative_vol = returns[returns < 0].std() * np.sqrt(252)
         if negative_vol == 0:
@@ -618,6 +824,25 @@ class ThematicBasketCreator:
         return (mean_ret - rf) / negative_vol
 
     def _calculate_max_drawdown(self, returns: pd.Series) -> float:
+        """
+        Calculates the maximum drawdown for a series of daily returns.
+
+        Steps:
+          1) Convert daily returns to cumulative returns.
+          2) Track the running maximum of the cumulative returns.
+          3) Maximum drawdown is the maximum % difference from the peak.
+
+        Parameters
+        ----------
+        returns : pd.Series
+            Daily returns of the portfolio.
+
+        Returns
+        -------
+        float
+            Max drawdown (negative value indicates the percentage drop).
+            E.g., -0.10 = -10% from peak.
+        """
         cum_returns = (1 + returns).cumprod()
         peak = cum_returns.expanding(min_periods=1).max()
         drawdown = (cum_returns - peak) / peak
@@ -627,6 +852,26 @@ class ThematicBasketCreator:
     def _calculate_tracking_error(
         self, returns: pd.Series, benchmark: pd.Series = None
     ) -> float:
+        """
+        Computes the Tracking Error relative to a benchmark.
+
+        If no benchmark is provided or length mismatch,
+        returns 0.0 by default.
+
+        Parameters
+        ----------
+        returns : pd.Series
+            Daily returns of the portfolio.
+        benchmark : pd.Series, optional
+            Daily returns of a benchmark.
+
+        Returns
+        -------
+        float
+            The annualized tracking error. A smaller value indicates the
+            portfolio more closely follows the benchmark.
+        """
+
         # If no benchmark, just return 0 as placeholder
         if benchmark is None or len(returns) != len(benchmark):
             return 0.0
@@ -634,7 +879,7 @@ class ThematicBasketCreator:
         return diff.std() * np.sqrt(252)
 
     # ------------------------------------------------------------------------
-    # 7. Documentation & Testing
+    # 8. Documentation & Testing
     # ------------------------------------------------------------------------
     def run_unit_tests(self):
         """
@@ -652,7 +897,14 @@ class ThematicBasketCreator:
 
 def parse_arguments():
     """
-    Parse command-line arguments for controlling re-load behaviors.
+    Parse command-line arguments for controlling reload behaviors.
+
+    Returns
+    -------
+    argparse.Namespace
+        An object containing the parsed arguments:
+         - reload_classes: bool
+         - reload_optimisation: bool
     """
     parser = argparse.ArgumentParser(description="Thematic Investing CLI")
     parser.add_argument(
