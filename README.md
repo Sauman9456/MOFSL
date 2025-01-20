@@ -153,7 +153,7 @@ Below is a high-level flow of how the system operates:
 
 ### Performance Analysis Across Themes
 
-Below is a **sampled** performance analysis illustrating how thematic portfolios performed from **March 2024 to January 2025**. (Actual results depend on data availability and market conditions.)
+Below is a **sampled** performance analysis illustrating how thematic portfolios performed from **January 2024 to January 2025**. (Actual results depend on data availability and market conditions.)
 
 1. **Cumulative Returns**  
    - **Cybersecurity** achieved the **highest growth** (*1.80x* of the initial investment), closely followed by **Robotics** and **Cloud Computing** (1.75x).  
